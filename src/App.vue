@@ -24,51 +24,14 @@
     </ul>
   </div> 
 </nav>
+  <div class="content-container">
+      
+      <router-view/>
 
-  
-   <!-- Sidebar -->
-    <nav id="sidebar">
-
-        <div id="dismiss">
-            <i class="fas fa-arrow-left"></i>
-        </div>
-
-        <div class="sidebar-header">
-            <h3>Bootstrap Sidebar</h3>
-        </div>
-
-        <ul class="list-unstyled components">
-            <p class="menu-title">Depreciation Methods</p>
-            <li>
-                <a href="#homeSubmenu" data-toggle="collapse" aria-expanded="false">Straight Line</a>
-                
-            </li>
-            <li>
-                <a href="#">Double Declining Bal</a>
-                <a href="#pageSubmenu" data-toggle="collapse" aria-expanded="false">Pages</a>
-                <ul class="collapse list-unstyled" id="pageSubmenu">
-                    <li>
-                        <a href="#">Page 1</a>
-                    </li>
-                    <li>
-                        <a href="#">Page 2</a>
-                    </li>
-                    <li>
-                        <a href="#">Page 3</a>
-                    </li>
-                </ul>
-            </li>
-            <li>
-                <a href="#">Sum of Years</a>
-            </li>
-            <li>
-                <a href="#">Unit of Production</a>
-            </li>
-        </ul>
-    </nav>
+  </div>
+   
 
 
-    <router-view/>
 <div class="footer">
   <p><a href="kenhitech.com">Powered by Wafutech 2018</a></p>
 </div>
@@ -91,6 +54,19 @@ export default {
   color: #2c3e50;
   margin-top: 60px;
   padding-top:100px;
+  padding-left:180px;
+  padding-right:180px;
+   padding-bottom:50px;
+  background-color:grey;
+  height:100%;
+
+}
+.content-container{
+  color:#000;
+  width:100;
+  border: 1px solid red;
+background-color:#fff;
+padding:50px;
 
 }
 .footer

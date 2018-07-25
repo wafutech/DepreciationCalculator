@@ -1,6 +1,19 @@
 <template>
   <div>
-  <h3 class="title">Fixed Asset Depreciation Calculator</h3>
+  <hr>
+  <div class="panel panel-info">
+  <div class="panel-heading">
+  <div class="panel-title">
+  <h2>Fixed Asset Depreciation Calculator</h2>
+  </div>
+  </div>
+  <div class="panel-body">
+  <div v-show="guideMessage">
+  Provides you with accurate Asset Depreciation Results based on different Methods you select. You don't have to be an accountant to use this application. The notes included in each depreciation method is enough to guide along the right direction.
+  </div>
+  </div>
+  </div>
+  <hr>
 
   <!--Depreciation Methods drop-down-->
   <div class="panel panel-default">
@@ -10,10 +23,14 @@
           <div class="col-md-6">
           <div class="form-group" :onload="fetchDepreciationMethods()">
             <label>Select Depreciation Method:</label>
-            <select v-model="selected_method" :onchange="loadDeprecianMethodForm()" class="form-control" style="height:40px;">
+            <select v-model="selected_method" :onchange="loadDeprecianMethodForm()" class="form-control" style="height:40px;" v-validate="'required'" name="depreciation_method">
             <option disabled>Select Depreciation Method</option>
             <option v-for="d in dpmethods" v-bind:value="d.depreciation_method">{{d.depreciation_method}}</option> 
           </select> 
+          <div class="help-block alert alert-danger" v-show="errors.has('depreciation_method')">
+
+          {{errors.first('depreciation_method')}}
+          </div>
 
           </div>
           </div>
@@ -24,9 +41,29 @@
 
   <!--End of Depreciation Methods Drop-down--> 
 
+<!--This is the result section where results for various depreciation methods are displayed-->
+
+<div class="results">
+<!--CALCULATION RESULTS-->
+<div  v-if="showStraightLineResults">
+<div v-html="straightLineResult"></div>
+</div>
+
+<div v-if="showReducing">
+
+<div v-html="reducingBalResult"></div>
+
+</div>
+
+<div v-if="showSumofYears">
+
+<div v-html="sumYearsResult"></div>
+
+</div>
 
 
 
+</div>
 
 
 <!--DEPRECIATION METHODS FORMS-->
@@ -42,13 +79,17 @@
   <div class="panel-body">
   <div class="row">
   <div class="col-md-6">
-  <form v-on:submit.prevent="straightLineDepCal">
+  <form v-on:submit.prevent="straightLineDepCal" name="straightlinefrm">
 
       <div class="row">
       <div class="col-md-10">
       <div class="form-group">
-            <label>Historical Cost:</label>
-            <input type="number" class="form-control" v-model="asset.purchase_price" placeholed="This is usually the purchase price of the fixed asset">
+            <label>Historical Cost (Asset Purchase Price) *:</label>
+            <input type="number" class="form-control" v-model="asset.purchase_price" name="straight_purchase_price" placeholed="This is usually the purchase price of the fixed asset" v-validate="'required|min:1'">
+            <div class="help-block alert alert-danger" v-show="errors.has('straight_purchase_price')">
+
+          {{errors.first('straight_purchase_price')}}
+            </div>
             </div>
       </div>
       
@@ -57,32 +98,45 @@
           <div class="col-md-10">
             <div class="form-group">
               <label>Salvage Value:</label>
-              <input type="number" class="form-control" v-model="asset.salvage_value" />
+              <input type="number" class="form-control" v-model="asset.salvage_value" v-validate="'min:0'" name="salvage_value"/>
+              <div class="help-block alert alert-danger" v-show="errors.has('salvage_value')">
+
+          {{errors.first('salvage_value')}}
             </div>
+            </div>
+
           </div>
         </div>
 
         <div class="row">
           <div class="col-md-10">
             <div class="form-group">
-              <label>Useful Years:</label>
-              <input type="number" class="form-control" v-model="asset.useful_years" />
+              <label>Useful Years *:</label>
+              <input type="number" class="form-control" v-model="asset.useful_years" name="straight_useful_years" v-validate="'required|max_value:99'"/>
+              <div class="help-block alert alert-danger" v-show="errors.has('straight_useful_years')">
+
+          {{errors.first('straight_useful_years')}}
+            </div>
             </div>
           </div>
         </div>
 
         <div class="form-group">
-          <button class="btn btn-info">Calculate</button>
+          <button class="btn btn-info" :disabled="errors.any()||!isComplete">Calculate</button>
+
+          <button :disabled="!isComplete" class="btn btn-primary"  type="submit">Send Invite</button>
+
         </div>
       
 </form>
   </div>
   <div class="col-md-6 alert alert-info">
+
   <h3>Help Info!</h3>
   <p><strong>This method spreads the cost of the fixed asset evenly over its useful life.</strong></p>
-  <p>When using the straight-line method, the salvage value reduces the depreciable base. Assume that Penway purchases a toaster fabrication machine for $30,000. Salvage value is $3,000. The cost of the machine ($30,000) minus its salvage value ($3,000) gives you a depreciable base of $27,000.</p>
+  <p>When using the straight-line method, the salvage value reduces the depreciable base.
+  </p>
 
-<p>The expected useful life is 5 years. So depreciation expense for the toaster machine is $27,000 / 5, or $5,400 depreciation expense per year for each of the five years. Book value at the end of year 5 is the salvage value of $3,000.</p>
   </div>
   </div>
      
@@ -112,8 +166,12 @@
   <div class="row">
         <div class="col-md-10">
           <div class="form-group">
-            <label>Historical Cost:</label>
-            <input type="number" class="form-control" v-model="reducingbal.purchase_price">
+            <label>Historical Cost (Purchase Price)*:</label>
+            <input type="number" name="reducing_bal_purchase_price" class="form-control" v-model="reducingbal.purchase_price" v-validare="'required|min:1'">
+            <div class="help-block alert alert-danger" v-show="errors.has('reducing_bal_purchase_')">
+
+          {{errors.first('reducing_bal_purchase_price')}}
+            </div>
           </div>
         </div>
         </div>
@@ -123,13 +181,17 @@
           <div class="row">
           <div class="col-md-10">
             <div class="form-group">
-              <label>Useful Years:</label>
-              <input type="number" class="form-control" v-model="reducingbal.useful_years" />
+              <label>Useful Years*:</label>
+              <input type="number" class="form-control" v-model="reducingbal.useful_years" name="reducing_bal_useful_years" v-vadiate="'required|max_value:99'" />
+              <div class="help-block alert alert-danger" v-show="errors.has('reducing_bal_useful_years')">
+
+          {{errors.first('reducing_bal_useful_years')}}
+            </div>
             </div>
           </div>
         </div>
       <div class="form-group">
-          <button class="btn btn-info">Calculate</button>
+          <button class="btn btn-info" :disabled="errors.any()||!isCompleteReducingBal">Calculate</button>
         </div>
   </form>
 
@@ -140,9 +202,7 @@
   <p><em>An accelerated method of depreciation, it results in higher depreciation expense in the earlier years of ownership</em></p>
   <p>Don’t deduct salvage value when figuring the depreciable base for the declining balance method. But do limit depreciation so that, at the end of the day, the asset’s net book value is the same as its estimated salvage value.</p>
 
-<p>You compute cost and salvage value for the asset the same as with the straight-line method. For your rate, you use a multiple of the straight-line rate.<p>
 
-<p>Going back to the Penway example, the straight-line rate is 20 percent. Well, because the toaster-making machine has a useful life of five years, shown as a percentage, the straight-line rate is 1/5, or 20 percent per year.</p>
     </div>
   </div>
   
@@ -169,8 +229,12 @@
   <div class="row">
         <div class="col-md-10">
           <div class="form-group">
-            <label>Historical Cost:</label>
-            <input type="number" class="form-control" v-model="asset.purchase_price">
+            <label>Historical Cost(Purchase Price)*:</label>
+            <input type="number" class="form-control" v-model="asset.purchase_price" name="purchase_price" v-validate="'required|min:1'">
+            <div class="help-block alert alert-danger" v-show="errors.has('purchase_price')">
+
+          {{errors.first('purchase_price')}}
+            </div>
           </div>
         </div>
         </div>
@@ -179,7 +243,12 @@
           <div class="col-md-10">
             <div class="form-group">
               <label>Salvage Value:</label>
-              <input type="number" class="form-control" v-model="asset.salvage_value" />
+              <input type="number" v-validate="'min:0'" class="form-control" v-model="asset.salvage_value" />
+              <div class="help-block alert alert-danger" v-show="errors.has('salvage_value')">
+
+          {{errors.first('salvage_value')}}
+            </div>
+
             </div>
           </div>
         </div>
@@ -187,8 +256,12 @@
           <div class="row">
           <div class="col-md-10">
             <div class="form-group">
-              <label>Useful Years:</label>
-              <input type="number" class="form-control" v-model="asset.useful_years" />
+              <label>Useful Years *:</label>
+              <input type="number" class="form-control" v-model="asset.useful_years" name="useful_years" v-validate="'required|max_value:99'"/>
+              <div class="help-block alert alert-danger" v-show="errors.has('useful_years')">
+
+          {{errors.first('useful_years')}}
+            </div>
             </div>
           </div>
         </div>
@@ -197,7 +270,11 @@
           <div class="col-md-10">
             <div class="form-group">
               <label>Outer Shells Units:</label>
-              <input type="number" class="form-control" v-model="asset.life_time_units" />
+              <input type="number" class="form-control" v-model="asset.life_time_units" name="outer_shell_units" v-validate="'required|numeric'"/>
+              <div class="help-block alert alert-danger" v-show="errors.has('outer_shell_units')">
+
+          {{errors.first('outer_shell_units')}}
+            </div>
             </div>
           </div>
         </div>
@@ -205,13 +282,19 @@
           <div class="col-md-10">
             <div class="form-group">
               <label>Current Units:</label>
-              <input type="number" class="form-control" v-model="asset.current_units" />
+              <input type="number" class="form-control" v-model="asset.current_units" name="current_units" v-validate="'required|numeric'"/>
+              <div class="help-block alert alert-danger" v-show="errors.has('current_units')">
+
+          {{errors.first('current_units')}}
+            </div>
             </div>
           </div>
         </div>
         
         <div class="form-group">
-          <button class="btn btn-info">Calculate</button>
+          <button :disabled="errors.any() || !isCompleted" class="btn btn-info" :disable="errors.any()">Calculate</button>
+          <button :disabled="errors.any() || !isCompleted" class="btn btn-primary"   type="submit">Send Invite</button>
+
         </div>
         <div class="alert alert-danger" v-show="isUnitError">{{statusError}}</div>
     </form>
@@ -219,9 +302,11 @@
   <div class="col-md-6 alert alert-info">
   <h3>Help Info!</h3>
   <p><strong>The total estimated number of units the fixed asset will produce over its expected useful life, as compared to the number of units produced in the current accounting period, is used to calculate depreciation expense.</strong></p>
-  <p>Units-of-production is an activity method because you compute depreciation on actual physical use, making it a fantastic method for computing factory machinery depreciation.</p>
-  <p>In addition to knowing the cost basis and estimating the salvage value, you need to estimate how many outer shells the machine can produce prior to retirement
-  </p>
+  <p><strong>Outer Shell</strong> Units are the number of units the asset will produce during its useful life</p>
+  <p><strong>Current Units</strong>: Number of units produced during the period on which the depreciation is being calculated e.g. a month</p>
+
+  <p>This depreciation method is most suitable for factory machinery</p>
+
   </div>
   </div>
   
@@ -250,15 +335,19 @@
 <div class="row">
         <div class="col-md-10">
           <div class="form-group">
-            <label>Historical Cost:</label>
-            <input type="number" class="form-control" v-model="asset.purchase_price">
+            <label>Historical Cost (Purchase Price) *:</label>
+            <input type="number" class="form-control" v-model="asset.purchase_price" name="purchase_price" v-validate="'required|numeric'">
+            <div class="help-block alert alert-danger" v-show="errors.has('purchase_price')">
+
+          {{errors.first('purchase_price')}}
+            </div>
           </div>
         </div>
         </div>
          <div class="row">
           <div class="col-md-10">
             <div class="form-group">
-              <label>Salvage Value:</label>
+              <label>Salvage Value (Default 0):</label>
               <input type="number" class="form-control" v-model="asset.salvage_value" />
             </div>
           </div>
@@ -267,13 +356,17 @@
           <div class="row">
           <div class="col-md-10">
             <div class="form-group">
-              <label>Useful Years:</label>
-              <input type="number" class="form-control" v-model="asset.useful_years" />
+              <label>Useful Years *:</label>
+              <input type="number" class="form-control" v-model="asset.useful_years" name="useful_years" v-validate="'required|numeric'"/>
+              <div class="help-block alert alert-danger" v-show="errors.has('useful_years')">
+
+          {{errors.first('useful_years')}}
+            </div>
             </div>
           </div>
         </div>
       <div class="form-group">
-          <button class="btn btn-primary">Calculate</button>
+          <button class="btn btn-primary"  :disabled="errors.any()">Calculate</button>
         </div>
 
 </form>
@@ -281,7 +374,10 @@
  <div class="col-md-6 alert alert-info">
  <h3>Help Info!</h3>
  <p><strong>Compute depreciation expense by adding all years of the fixed asset’s expected useful life and factoring in which year you are currently in, as compared to the total number of years</strong></p>
- <p>With this method, you come up with a depreciation fraction using the number of years of useful life. Penway’s machine has a useful life of five years. Add (5 + 4 + 3 + 2 + 1 = 15) to get your denominator for the rate fraction. In year 1, your multiplier is 5/15 (1/3); in year 2, the multiplier is 4/15; and so on.</p>
+
+ 
+
+ 
  </div>
  </div>
   </div>
@@ -291,8 +387,13 @@
 <!-- </SUMOFYEARS>--> 
 
 
+<!--Display results of unit of production calculation at the bottom of the form since is only a single line -->
 
-
+<div v-show="unitsofProductionResult">
+<jumbotron>
+<h3>{{unitsofProductionResult}}</h3>
+</jumbotron>
+</div>
 
 
 <!--WARNING MESSAGE-->
@@ -302,24 +403,7 @@
 depreciation method!</p>
 </div>
 </div> 
-<!--CALCULATION RESULTS-->
-<div  v-if="showStraightLineResults">
-<div v-html="straightLineResult"></div>
-</div>
-<div v-if="showReducing">
 
-<div v-html="reducingBalResult"></div>
-
-</div>
-
-<div v-if="showSumofYears">
-
-<div v-html="sumYearsResult"></div>
-
-</div>
-<div v-if="showunitofProduction">
-<div v-html="unitsofProductionResult"></div>
-</div>
 
   </div>
 </template>
@@ -329,32 +413,55 @@ depreciation method!</p>
  
     data(){
         return{
-          dpmethods:{},
+        //List of depreciation methods
+          dpmethods:
+          [{depreciation_method:"Straight Line"},{depreciation_method:"Sum-of-the-years digits"},{depreciation_method:"Declining Balance"},{depreciation_method:"Units-of-production"}],
+          /*
+          Holds depreciation method currently selected by the user
+          */
+
           selected_method: '',
+
+          /*Hide all depreciation methods forms until the user selects a certain method*/
+
           showStraightLineForm: false,
           showReducingBalForm: false,
           showUnitofProductionForm:false,
           showSumofYearsForm:false,
-          showWarning:false,
-          reducingbal:{},
-          asset:{},
+
+          showWarning:false, //Displays a warning message when the user has not selected a depreciation method
+
+          reducingbal:{}, //Stores user input for declining bal depreciation form
+
+          asset:{}, //stores asset values asset inputed by the user
+          
+          /*These properties will be used to show results for various depreciation methods calculations*/
+
           showStraightLineResults:false,
           showReducingBalResult:false,
           yearsResult:false,
           showUnitProductionResult:true,
           results:'',
-          showReducingBalProjection:false,
+
+          showReducingBalProjection:false, //Hide and show results for declining bal
+
           reducingBalProjection:'',
+          /*Render html formated calculation results to user from various depreciation methods
+          */
           straightLineResult:'',
           reducingBalResult:'',
-          sumYearsResult:'',
-          unitsofProductionResult:'' ,
-          statusError:'',
-          isUnitError:false,
-          method_desc:'',
+          sumYearsResult:'',          
+          unitsofProductionResult:false ,
+          statusError:'', //Hold status error if any
+
+          isUnitError:false, //Show an error if current units exceeds outer shell in units sum of your units depr method
+                    
           showReducing:false,
           showunitofProduction:false ,
-          showSumofYears:false       
+          showSumofYears:false,
+          //Show and hide message displayed in launch form
+
+          guideMessage:false
 
 
         }
@@ -363,12 +470,22 @@ depreciation method!</p>
 
     beforeMount: function()
         {
-          this.fetchDepreciationMethods();
+          //this.fetchDepreciationMethods();
           this.straightLineDepCal();
           this.reducingBalDepCal();
           this.sumYearsDepCal();
           this.unitProductionDepCal();
         },
+
+    computed: {
+  isComplete () {
+    return this.straight_purchase_price && this.straight_useful_years;
+  },
+
+   isCompleteReducingBal() {
+    return reducing_bal_purchase_price && this.reducing_bal_useful_years;
+  }
+},
 
         
 
@@ -379,10 +496,8 @@ depreciation method!</p>
       var _this = this;
       if(!_this.dpmethods.length)
       {
-      var depreciations = {}
-       return this.axios.get('lists/asset-depreciations').then((depreciations) => {
-        _this.dpmethods = depreciations.data;
-      });
+      var dprmethods =[{depreciation_method:"Straight Line",description:"Some description"},{depreciation_method:"Sum of Years ",description:"Some description"},{depreciation_method:"Declining Balance ",description:"Some description"},{depreciation_method:"Unit of Production",description:"Some description"}];
+      //return  _this dpmethods.push(dprmethods);
       }
         
        
@@ -464,6 +579,10 @@ depreciation method!</p>
       },
       straightLineDepCal()
       {
+      //Perform validation check before executing
+      //the function
+       this.$validator.validateAll().then(()=>
+        {
             this.showReducing = false
             this.showunitofProduction = false
 
@@ -492,11 +611,14 @@ depreciation method!</p>
          resultTable+='</table>'
          this.showStraightLineResults=true
         this.straightLineResult = resultTable
-
+        })
       },
 
       reducingBalDepCal()
       {
+       //Perform validation check before executing the rest of the function
+          this.$validator.validateAll().then(()=>
+        {
           this.showunitofProduction = false
 
         var purchasePrice = this.reducingbal.purchase_price;     
@@ -528,13 +650,15 @@ depreciation method!</p>
         //this.showSumofYears = false
       this.showReducing = true
 
-
+      })
       },
 
   sumYearsDepCal()
       {
 
-
+//Perform validation check before executing the rest of the function
+          this.$validator.validateAll().then(()=>
+        {
       //Calculates depreciation based on sum of useful years formula
       //Hide results if any
       var purchasePrice = this.asset.purchase_price;
@@ -548,11 +672,13 @@ depreciation method!</p>
       }
 
       var depreciatableValue = purchasePrice-salvageValue
-      console.log(depreciatableValue)
       var counter =0
       var total =0
       var depreciation =0
       var bookvalue = depreciatableValue
+
+      //Generate results in a html table
+
       var resultTable ='<table class="table table-striped"><thead><tr><th>Year</th><th>Depreciated Amount</th><th>Book Value</th><th>Acc Depreciation</th></tr></thead>'
       for(var i=0;i<usefulYears;++i)
       {
@@ -573,18 +699,22 @@ depreciation method!</p>
 
       resultTable+='<tr><th colspan="3">Monthly Depreciation</th><th>'+this.formatCurrency(depreciatableValue/12)+'</th></tr>'
       resultTable+='<tr><td colspan="4">'+notes+'</td></tr>'
+      this.sumYearsResult = resultTable
       this.showSumofYears = true
 
       this.showStraightLineResults =false
      this.showunitofProduction = false
       this.showReducing = false
 
-
+      })
       },
 
       unitProductionDepCal()
       {
 
+//Perform validation check before executing the rest of the function
+          this.$validator.validateAll().then(()=>
+        {
       //Calculate depreciation based on sum of units of production formula
       var purchasePrice = this.asset.purchase_price;
       var salvageValue = this.asset.salvage_value;
@@ -614,15 +744,15 @@ depreciation method!</p>
         //this.results = currentDepreciationCost;
        
      
-          this.unitsofProductionResult =this.formatCurrency(currentDepreciationCost)
-          console.log(this.unitsofProductionResult)
+          this.unitsofProductionResult ="Current Depreciation is: "+this.formatCurrency(currentDepreciationCost)          
             this.showunitofProduction = true
-            //this.showSumofYears = false
+            this.showSumofYears = false
             this.showReducing = false
+            showStraightLineResults =false
 
 
             }
-
+            })
       },
 
       formatCurrency(value)
@@ -634,14 +764,14 @@ depreciation method!</p>
 
       },
 
-     /* calculateDepreciation(){
+      calculateDepreciation(){
         let uri = 'http://localhost/ims/public/api/assets/depreciation/methods';
          this.axios.get(uri).then((response) => {
                   this.dpmethods = response.data;
                  
               });
        
-    },*/
+    },
     }
   
 }
